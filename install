@@ -17,6 +17,18 @@ if [[ -z "$archinstalluser" ]]; then
     read -p "Choose your username: " archinstalluser
 fi
 
+echo -n "Enter a password: "
+read -s archinstallpasswd1
+echo
+echo -n "And one more time: "
+read -s archinstallpasswd2
+echo
+
+if [[ $archinstallpasswd1 != $archinstallpasswd2 ]]; then
+    echo "Password did not match"
+    exit
+fi
+
 parted --script -a optimal $archinstalldrive \
     mklabel gpt \
     mkpart primary fat32 1MiB 300MiB \
@@ -51,7 +63,7 @@ sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
 locale-gen
 
 useradd -m -g users -G wheel $archinstalluser
-passwd $archinstalluser
+printf "$archinstallpasswd1\n$archinstallpasswd2\n" | passwd $archinstalluser
 
 which sudo > /dev/null 2>&1
 if [[ \$? != 0 ]]; then
