@@ -21,10 +21,9 @@ mkdir /mnt/etc
 genfstab -U -p /mnt >> /mnt/etc/fstab
 
 pacstrap /mnt base
+/mnt/home/install-part2
 
-PART2LOCATION=/mnt/home/install-part2
-
-cat <<EOF > $PART2LOCATION
+cat <<EOF > /mnt/root/install-part2
 #!/bin/bash
 
 set -e
@@ -68,9 +67,9 @@ cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
 grub-mkconfig -o /boot/grub/grub.cfg
 EOF
 
-chmod +x $PART2LOCATION
-arch-chroot /mnt $PART2LOCATION
-rm $PART2LOCATION
+chmod +x /mnt/root/install-part2
+arch-chroot /mnt /root/install-part2
+rm /mnt/root/install-part2
 
 umount -a
 
