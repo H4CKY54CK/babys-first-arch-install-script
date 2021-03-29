@@ -21,7 +21,6 @@ mkdir /mnt/etc
 genfstab -U -p /mnt >> /mnt/etc/fstab
 
 pacstrap /mnt base
-/mnt/home/install-part2
 
 cat <<EOF > /mnt/root/install-part2
 #!/bin/bash
