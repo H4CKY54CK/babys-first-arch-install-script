@@ -41,8 +41,8 @@ sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
 locale-gen
 
 read -p "Choose your username: " archinstalluser
-useradd -m -g users -G wheel $archinstalluser
-passwd $archinstalluser
+useradd -m -g users -G wheel \$archinstalluser
+passwd \$archinstalluser
 
 which sudo > /dev/null 2>&1
 if [[ $? != 0 ]]; then
@@ -54,7 +54,7 @@ sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/g' /etc/sudoers
 pacman -S grub efibootmgr dosfstools os-prober mtools --noconfirm
 
 mkdir /boot/EFI
-mount "${1}" /boot/EFI
+mount $1 /boot/EFI
 grub-install --target=x86_64-efi --bootloader -id=grub_uefi --recheck
 
 if [[ ! -d /boot/grub/locale ]]; then
