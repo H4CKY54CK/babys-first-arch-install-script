@@ -2,20 +2,30 @@
 
 set -e
 
-if [[ $# -ne 1 ]]; then
-    echo "too few/many args"
-    exit
+if [[ $# -eq 2 ]]; then
+    archinstalldrive="${1}"
+    archinstalluser="${2}"
+else
+    echo "Sorry for the prompts. Command line options to eliminate those coming soon! (but secretly I have included some for the dev, which is me, so get rekt)"
 fi
 
-parted --script -a optimal $1 \
+if [[ -z "$archinstalldrive" ]]; then
+    read -p "What drive are we installing to? (i.e. /dev/sdx): " archinstalldrive
+fi
+
+if [[ -z "$archinstalluser" ]]; then
+    read -p "Choose your username: " archinstalluser
+fi
+
+parted --script -a optimal $archinstalldrive \
     mklabel gpt \
     mkpart primary fat32 1MiB 300MiB \
     mkpart primary ext4 300MiB 100% \
     set 1 esp on
 
-mkfs.fat -F32 "${1}1"
-mkfs.ext4 -F "${1}2"
-mount "${1}2" /mnt
+mkfs.fat -F32 "${archinstalldrive}1"
+mkfs.ext4 -F "${archinstalldrive}2"
+mount "${archinstalldrive}2" /mnt
 mkdir /mnt/home
 mkdir /mnt/etc
 genfstab -U -p /mnt >> /mnt/etc/fstab
@@ -40,12 +50,11 @@ sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
 
 locale-gen
 
-read -p "Choose your username: " archinstalluser
-useradd -m -g users -G wheel \$archinstalluser
-passwd \$archinstalluser
+useradd -m -g users -G wheel $archinstalluser
+passwd $archinstalluser
 
 which sudo > /dev/null 2>&1
-if [[ $? != 0 ]]; then
+if [[ \$? != 0 ]]; then
     pacman -S sudo --noconfirm
 fi
 
@@ -54,7 +63,7 @@ sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/g' /etc/sudoers
 pacman -S grub efibootmgr dosfstools os-prober mtools --noconfirm
 
 mkdir /boot/EFI
-mount $1 /boot/EFI
+mount "${archinstalldrive}1" /boot/EFI
 grub-install --target=x86_64-efi --bootloader -id=grub_uefi --recheck
 
 if [[ ! -d /boot/grub/locale ]]; then
