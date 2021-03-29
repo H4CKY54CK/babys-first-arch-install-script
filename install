@@ -91,6 +91,4 @@ chmod +x /mnt/root/install-part2
 arch-chroot /mnt /root/install-part2
 rm /mnt/root/install-part2
 
-umount -a
-
 reboot
