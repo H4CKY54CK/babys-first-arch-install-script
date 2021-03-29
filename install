@@ -1,0 +1,72 @@
+#!/bin/bash
+
+set -e
+
+if [[ $# -ne 1 ]]; then
+    echo "too few/many args"
+    exit
+fi
+
+cat <<EOF > /mnt/root/install-part2
+#!/bin/bash
+
+set -e
+
+pacman -S linux linux-headers linux-lts linux-lts-headers base-devel openssh networkmanager wpa_supplicant wireless_tools netctl dialog lvm2 --noconfirm
+systemctl enable NetworkManager
+
+sed -i 's/block filesystems/block lvm2 filesystems/g' /etc/mkinitcpio.conf
+
+mkinitcpio -p linux
+mkinitcpio -p linux-lts
+
+
+sed -i 's/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/g' /etc/locale.gen
+
+locale-gen
+
+read -p "Choose your username: " archinstalluser
+useradd -m -g users -G wheel $archinstalluser
+passwd $archinstalluser
+
+which sudo > /dev/null 2>&1
+if [[ $? != 0 ]]; then
+    pacman -S sudo --noconfirm
+fi
+
+sed -i 's/# %wheel ALL=(ALL) ALL/%wheel ALL=(ALL) ALL/g' /etc/sudoers
+
+pacman -S grub efibootmgr dosfstools os-prober mtools --noconfirm
+
+mkdir /boot/EFI
+mount "${1}" /boot/EFI
+grub-install --target=x86_64-efi --bootloader -id=grub_uefi --recheck
+
+if [[ ! -d /boot/grub/locale ]]; then
+    mkdir /boot/grub/locale
+fi
+
+cp /usr/share/locale/en\@quot/LC_MESSAGES/grub.mo /boot/grub/locale/en.mo
+
+grub-mkconfig -o /boot/grub/grub.cfg
+EOF
+
+parted --script -a optimal $1 \
+    mklabel gpt \
+    mkpart primary fat32 1MiB 300MiB \
+    mkpart primary ext4 300MiB 100% \
+    set 1 esp on
+
+mkfs.fat -F32 "${1}1"
+mkfs.ext4 -F "${1}2"
+mount "${1}2" /mnt
+mkdir /mnt/home
+mkdir /mnt/etc
+genfstab -U -p /mnt >> /mnt/etc/fstab
+
+pacstrap /mnt base
+arch-chroot /mnt "sh /mnt/root/install-part2 ${1}"
+rm /mnt/root/install-part2
+umount -a
+
+reboot
